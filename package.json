@@ -1,14 +1,14 @@
 {
   "name": "pantograph",
-  "version": "0.0.0-2",
+  "version": "0.0.1",
   "description": "A api for controlling multiplayer html5 2d canvas games from a server!",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js"
   },
-  "repository": "",
-  "author": "",
+  "repository": "https://github.com/masyl/pantograph.git",
+  "author": "Mathieu Sylvain",
   "license": "BSD",
   "subdomain": "pantograph",
   "engines": {
