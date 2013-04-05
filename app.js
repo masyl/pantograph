@@ -20,6 +20,9 @@ var Game = new require("./game");
 
 var game = new Game();
 
+// Start the game loop
+game.start();
+
 // A pantograph model for the main screen, which will show cursor of each players
 var mainScreen = new require("./game/mainScreen");
 

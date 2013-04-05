@@ -1,6 +1,6 @@
 ;(function ($) {
 
-	var mouseThrottle = 10;
+	var mouseThrottle = 30;
 
 	var Ticker = createjs.Ticker;
 	var Stage = createjs.Stage;
@@ -18,7 +18,7 @@
 		p.element = p.stage = new Stage(canvasElement);
 
 		p.socket.on("exec", function (data) {
-			console.log(data.macro, data.model);
+			//console.log(data.macro, data.model);
 			p.exec(data.macro, data.model);
 			p.stage.update();
 		});

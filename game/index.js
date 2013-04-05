@@ -13,9 +13,37 @@ function Game() {
 	this.players = {};
 	this.bombCount = 0;
 	this.bombs = {};
+	this.speed = 300;
+	this.running = false;
+	this.cycle = 0;
 }
 
 util.inherits(Game, events.EventEmitter);
+
+Game.prototype.start = function () {
+	console.log("Game started!");
+	this.running = true;
+	this.tick();
+	return this;
+}
+
+Game.prototype.stop = function () {
+	this.running = false;
+	return this;
+}
+
+Game.prototype.tick = function () {
+	this.cycle++;
+	console.log("Tick!", this.cycle);
+	var game = this;
+	this.testBombs();
+	if (this.running) {
+		setTimeout(function() {
+			game.tick();
+		}, this.speed);
+	}
+	return this;
+};
 
 Game.prototype.connect = function (id) {
 	var player = new Player(id);
@@ -27,6 +55,7 @@ Game.prototype.connect = function (id) {
 Game.prototype.disconnect = function (player) {
 	delete this.players[player.id];
 	this.emit("disconnect", player);
+	return this;
 };
 
 Game.prototype.move = function (id, x, y) {
@@ -34,6 +63,7 @@ Game.prototype.move = function (id, x, y) {
 	player.x = x;
 	player.y = y;
 	this.emit("move", player);
+	return this;
 }
 
 function Player(id) {
@@ -55,9 +85,10 @@ Bomb.prototype.isExploded = function () {
 }
 
 Game.prototype.placeBomb = function(x, y) {
+	console.log("Bomb placed!");
 	this.bombCount++;
 	var id = "bomb-" + this.bombCount;
-	var bomb = new Bomb(id, x, y, 2000, Date.now());
+	var bomb = new Bomb(id, x, y, 3000, Date.now());
 	this.bombs[id] = bomb;
 	this.emit("tsss", bomb);
 	return this;
@@ -69,6 +100,7 @@ Game.prototype.testBombs = function() {
 	for (var key in this.bombs) {
 		var bomb = this.bombs[key];
 		if (bomb.isExploded()) {
+			console.log("Boom!!!");
 			delete this.bombs[key];
 			this.emit("boom", bomb);
 		}

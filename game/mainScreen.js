@@ -44,7 +44,7 @@ var mainScreen = Pantograph(function () {
 
 	game.on("boom", function (bomb) {
 		p.exec("p.select('bombs').select(id).delete()", {
-			id: bomb.id
+			id: "sprite-" + bomb.id
 		});
 	});
 

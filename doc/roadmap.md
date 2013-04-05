@@ -1,8 +1,12 @@
 
 
 # BACKLOG
-- Bombs disappears after a delay
+- Prevent default mouse/touch/selection events on canvas
+- Exploding bomb will trigger other bombs nearby to explode
+- Log time cost of game loop
 - Animated explosions for bombs
+- Drag a bomb with your in-game cursor 
+- Show countdown on bombs
 - Catch mouse position even before first move
 - Play ambient soundtrack
 - Play sound when cursors places bomb
@@ -28,7 +32,15 @@
 
 
 # HISTORY
+
+## v0.0.3
+
+- Bombs disappears after a delay
+
+## v0.0.2
 - Draw bombs under the cursors
+
+## v0.0.1
 - Untangle connect/disconnect from game and differentiate between cursors
 - Server changes cursor on click
 - Trigger API commands with funex expressions through socket.io
