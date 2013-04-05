@@ -1,0 +1,20 @@
+{
+  "name": "funex",
+  "version": "0.0.0",
+  "main": "./lib/funex.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "components"
+  ],
+  "gitHead": "690dee9d640bd758131ce8063c461cb8f9eb5119",
+  "readme": "# Funex\n\nJavascript utility for secure evaluation of functional expressions.\n\nExample usage:\n\n\tresult = funex(\"members[id].name.fullname()\", model);\n\n## Features\n- Expressions are evaluated and executed in a controlled and secure scope\n- Minified source is around 2k\n- Supports function calls, dot notation, array/object members, strings, numbers\n- Use array of objects to simulate closures.\n- The syntax is a familiar subset of javascript\n- Simple because it is logic-less: no operators, statements or boolean logic.\n- Throws readable syntax errors\n- Runs both in browser and on the server\n- No complex api or configuration, a single function to use\n- Compiled expressions can be cached and reused\n- Minimal overhead compared to native code\n- Extensive test suite and benchmarking\n- Open source and maintained on Github\n\n## Usefull for ...\n- Resolving richer but secure expressions in templating engines\n- Scenarios where third parties can customize portion of your apps without\ncompromising security\n- To allow secure macros in extendable apps\n- For computable values in configurable apps\n\n## Installation\n\nFor now it is a single \"funex.js\" file, but it should soon be on node npm\n\n## Usage\n\n\t// Declare a context with the allowed data\n\tcontext = {\n\t\tdogs : {\n\t\t\tnames: [\"fido\", \"ricky\"],\n\t\t}\n\t\tjoin: function (a, b) { return a+\"-\"+b }\n\t}\n\n\t// Compile the expression into a function\n\tfn = funex(\"join(dogs.names[0], dogs.name[1])\");\n\n\t// Call the function with a context\n\tvar value = fn(context);\n\n## Usage with closures\n\n\t// Declare the context with an array of objects with item 0 being the top most frame\n\tcontext = [\n\t\t{\n\t\t\tdogs : {\n\t\t\t\tnames: [\"fido\", \"ricky\"],\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\tjoin: function (a, b) { return a+\"-\"+b }\n\t\t}\n\t]\n\n\t// Compile the expression into a function\n\tfn = funex(\"join(dogs.names[0], dogs.name[1])\");\n\n\t// Call the function with a context\n\tvar value = fn(context);\n\n\n## Roadmap\n- Support evaluation of async expressions with a standard callback\n- npm installation\n- Test coverage report\n- Detailed syntax documentation\n- A pretty web-site\n",
+  "readmeFilename": "README.md",
+  "_id": "funex@0.2.1",
+  "description": "Javascript utility for secure evaluation of functional expressions.",
+  "commit": "690dee9d640bd758131ce8063c461cb8f9eb5119",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/masyl/funex.git"
+  }
+}
