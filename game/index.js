@@ -11,12 +11,19 @@ var util = require('util');
 
 function Game() {
 	this.players = {};
-	this.bombCount = 0;
-	this.bombs = {};
-	this.speed = 300;
+	this.bobombCount = 0;
+	this.bobombs = {};
+	this.speed = 20;
 	this.running = false;
 	this.cycle = 0;
 }
+
+// High resolution timer
+var timerInterval = 3000;
+var timerSince = 0;
+var timerCycles = 0;
+var timerAccumulated = 0;
+
 
 util.inherits(Game, events.EventEmitter);
 
@@ -34,12 +41,24 @@ Game.prototype.stop = function () {
 
 Game.prototype.tick = function () {
 	this.cycle++;
-	console.log("Tick!", this.cycle);
+//	console.log("Tick!", this.cycle);
 	var game = this;
 	this.testBombs();
 	if (this.running) {
 		setTimeout(function() {
+			var before = process.hrtime();
 			game.tick();
+			var now = Date.now();
+			var diff = process.hrtime(before);
+			var timespan = diff[0] * 1e9 + diff[1];
+			timerAccumulated = timerAccumulated + timespan;
+			timerCycles++;
+			var perCycle = timerAccumulated / timerCycles;
+			if (now - timerSince > timerInterval) {
+				console.log(1000000000 / perCycle, " - ", timerAccumulated, " - ", timerCycles);
+				timerSince = now;
+				timerAccumulated = timerCycles = 0;
+			}
 		}, this.speed);
 	}
 	return this;
@@ -84,25 +103,25 @@ Bomb.prototype.isExploded = function () {
 	return (this.timestamp + this.fuseTimeout < Date.now());
 }
 
-Game.prototype.placeBomb = function(x, y) {
+Game.prototype.placeBobomb = function(x, y) {
 	console.log("Bomb placed!");
-	this.bombCount++;
-	var id = "bomb-" + this.bombCount;
-	var bomb = new Bomb(id, x, y, 3000, Date.now());
-	this.bombs[id] = bomb;
-	this.emit("tsss", bomb);
+	this.bobombCount++;
+	var id = "bobomb-" + this.bobombCount;
+	var bobomb = new Bomb(id, x, y, 3000, Date.now());
+	this.bobombs[id] = bobomb;
+	this.emit("tsss", bobomb);
 	return this;
 }
 
 
 Game.prototype.testBombs = function() {
-	var bomb;
-	for (var key in this.bombs) {
-		var bomb = this.bombs[key];
-		if (bomb.isExploded()) {
+	var bobomb;
+	for (var key in this.bobombs) {
+		var bobomb = this.bobombs[key];
+		if (bobomb.isExploded()) {
 			console.log("Boom!!!");
-			delete this.bombs[key];
-			this.emit("boom", bomb);
+			delete this.bobombs[key];
+			this.emit("boom", bobomb);
 		}
 	}
 	return this;

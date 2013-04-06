@@ -1,11 +1,10 @@
 
 
 # BACKLOG
+- Make a factory for the high resolution timer mechanism
 - Prevent default mouse/touch/selection events on canvas
 - Exploding bomb will trigger other bombs nearby to explode
-- Log time cost of game loop
-- Animated explosions for bombs
-- Drag a bomb with your in-game cursor 
+- Drag a bomb with your in-game cursor
 - Show countdown on bombs
 - Catch mouse position even before first move
 - Play ambient soundtrack
@@ -18,6 +17,7 @@
 - Client sends keystroke
 - Server reacts to keystroke
 - Add easing into api
+- Upon big lag or disconnection, the player's cursor re-appears
 - Abstract the library from the demo
 - Namespace all socket events
 - Basic "room" chat
@@ -32,6 +32,13 @@
 
 
 # HISTORY
+
+## v0.0.4
+
+- Change class names to "Bobombs" instead of "Bombs"
+- Animated explosions for bombs
+- Animated "Bobombs" sprites
+- Log time cost of game loop
 
 ## v0.0.3
 

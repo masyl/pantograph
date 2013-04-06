@@ -6,7 +6,7 @@
 	var Stage = createjs.Stage;
 	var Bitmap = createjs.Bitmap;
 
-	Ticker.setFPS(60);
+	Ticker.setFPS(48);
 	Ticker.addListener(window);
 
 
@@ -20,11 +20,17 @@
 		p.socket.on("exec", function (data) {
 			//console.log(data.macro, data.model);
 			p.exec(data.macro, data.model);
-			p.stage.update();
+			// p.stage.update();
 		});
 
 		// index of all object by their ID's
 		p.all = {};
+
+		window.tick = function tick() {
+
+		    // update the stage:
+		    p.stage.update();
+		}
 
 	};
 
@@ -212,6 +218,107 @@
 
 
 
+	function Animation(id) {
+		if ( !(this instanceof Animation) )
+			return new Animation(id);
+
+		this.id = id;
+		this.x = 0;
+		this.y = 0;
+		this._sprite = null;
+		this.element = null;
+		this.parent = null;
+		this.playWhenReady = null;
+		this.currentSpeed = 1;
+		this.looping = false;
+	}
+
+	Animation.prototype.sprite = function (data) {
+		var animation = this;
+		var sheet = animation._sprite = new createjs.SpriteSheet(data)
+		if (!sheet.complete) {
+			// not preloaded, listen for onComplete:
+			sheet.addEventListener("complete", function(e) {
+				animation.element = new createjs.BitmapAnimation(sheet);
+				animation.element.onAnimationEnd = function (e) {
+					// console.log("animation.looping : ", animation.looping);
+					if (!animation.looping) animation.element.stop();
+				};
+				animation.update();
+					// console.log("RESUME? ", animation.playWhenReady);
+				if (animation.playWhenReady) {
+					animation.play(animation.playWhenReady);
+				}
+				if (animation.parent) {
+					animation.parent.add(animation);
+					animation.parent.update();
+				}
+				// console.info("BitmapAnimation created:", bitmap.element);
+			});
+		}
+		return this;
+	}
+
+	Animation.prototype.delete = function () {
+		this.parent.delete(this);
+		return this;
+	}
+
+	Animation.prototype.speed = function (_speed) {
+		this.currentSpeed = _speed;
+		return this;
+	}
+
+	Animation.prototype.loop = function (_loop) {
+		this.looping = _loop;
+		return this;
+	}
+
+	Animation.prototype.play = function (seq) {
+		if (this.element) {
+			this.element.speed = this.currentSpeed;
+			this.element.gotoAndPlay(seq);
+		} else {
+			this.playWhenReady = seq;
+		}
+		return this;
+	}
+
+	Animation.prototype.addTo = function (parent) {
+		parent.add(this);
+		return this;
+	}
+
+	Animation.prototype.move = function (x, y) {
+		this.x = x;
+		this.y = y;
+		this.update();
+		return this;
+	}
+
+	Animation.prototype.reg = function (x, y) {
+		this.regX = x;
+		this.regY = y;
+		this.update();
+		return this;
+	}
+
+	Animation.prototype.update = function () {
+		if (this.element) {
+			this.element.x = this.x;
+			this.element.y = this.y;
+			this.element.regX = this.regX;
+			this.element.regY = this.regY;
+		}
+		return this;
+	}
+
+
+
+
+
+
+
 
 	function Container(id) {
 		if ( !(this instanceof Container) )
@@ -282,6 +389,7 @@
 
 	Pantograph.prototype.Bitmap = _Bitmap;
 	Pantograph.prototype.Container = Container;
+	Pantograph.prototype.Animation = Animation;
 
 	window.Pantograph = Pantograph;
 

@@ -42,20 +42,19 @@ var mainScreen = Pantograph(function () {
 		});
 	});
 
-	game.on("boom", function (bomb) {
-		p.exec("p.select('bombs').select(id).delete()", {
-			id: "sprite-" + bomb.id
-		});
+	game.on("boom", function (bobomb) {
+		removeBomb(bobomb);
+		showExplosion(bobomb);
 	});
 
-	game.on("tsss", function (bomb) {
-		createBomb(bomb);
+	game.on("tsss", function (bobomb) {
+		createBomb(bobomb);
 	});
 
 /*
 
 {
-		id: bomb.id,
+		id: bobomb.id,
 		x: this.x,
 		y: this.y,
 		expiration: this.timestamp + this.fuseTimeout
@@ -72,13 +71,19 @@ var mainScreen = Pantograph(function () {
 	// Start listening to the remote mouse signal
 	p.on('mouseUp', function (data) {
 		game.move(player.id, data.x, data.y);
-		game.placeBomb(data.x, data.y);
+		game.placeBobomb(data.x, data.y);
 	});
 
 	// Start listening to the remote mouse signal
 	p.on('mouseDown', function (data) {
 		game.move(player.id, data.x - 1, data.y + 3);
 	});
+
+	function removeBomb(bobomb) {
+		p.exec("p.select('bobombs').select(id).delete()", {
+			id: "sprite-" + bobomb.id
+		});
+	}
 
 	// Create the remote cursors for each player
 	function createCursors(players) {
@@ -89,7 +94,6 @@ var mainScreen = Pantograph(function () {
 	function createCursor(_player) {
 		// Change the cursor color depending if it is the current player
 		var url = (_player === player) ? "images/cursor.png" : "images/cursor2.png";
-		console.log("------", _player.x, _player.y);
 		p.exec("p.Bitmap(id).src(uri).reg(9, 9).move(x, y).addTo(p.select('cursors'))", {
 			id: 'cursor-' + _player.id,
 			uri: url,
@@ -99,27 +103,73 @@ var mainScreen = Pantograph(function () {
 	}
 
 	// Create the remote cursors for each player
-	function createBombs(bombs) {
-		for (var key in bombs) {
-			createBomb(bombs[key]);
+	function createBombs(bobombs) {
+		for (var key in bobombs) {
+			createBomb(bobombs[key]);
 		}
 	}
-	function createBomb(bomb) {
+	function createBomb(bobomb) {
 		// Change the cursor color depending if it is the current player
-		p.exec("p.Bitmap(id).src(uri).reg(16, 16).move(x, y).addTo(p.select('bombs'))", {
-			id: 'sprite-' + bomb.id,
-			uri: "images/bomb.png",
-			x: bomb.x,
-			y: bomb.y
+		p.exec("p.Animation(id).sprite(sprite).move(x, y).addTo(p.select('bobombs')).speed(speed).loop(loop).play('idle')", {
+			id: 'sprite-' + bobomb.id,
+			x: bobomb.x,
+			y: bobomb.y,
+			speed: 300,
+			loop: true,
+			sprite: {
+				images : ["images/bobomb-sprites.png"],
+				frames: [
+					// x, y, width, height, imageIndex, regX, regY
+					// Idle
+					[10, 60, 60, 80, 0, 22, 60],
+					[70, 60, 60, 80, 0, 22, 60],
+					[130, 60, 60, 80, 0, 22, 60],
+					[190, 60, 60, 80, 0, 22, 60],
+				],
+				animations: {
+					idle: {
+						frames: [0, 1, 2, 3],
+						frequency: 16
+					}
+				}
+			}
+
 		});
 	}
 
-	p.exec("p.Container('bombs').addTo(p)");
+	function showExplosion(bobomb) {
+		// Change the cursor color depending if it is the current player
+		p.exec("p.Animation(id).sprite(sprite).move(x, y).addTo(p.select('explosions')).play('explode')", {
+			id: 'explosion-' + bobomb.id,
+			x: bobomb.x,
+			y: bobomb.y,
+			sprite: {
+				images : ["images/bobomb-sprites.png"],
+				frames: [
+					// x, y, width, height, imageIndex, regX, regY
+					// Explode
+					[280, 560, 138, 140, 0, 70, 70],
+					[418, 560, 138, 140, 0, 70, 70],
+					[556, 560, 138, 140, 0, 70, 70]
+				],
+				animations: {
+					explode: {
+						frames: [0, 1, 2, null],
+						frequency: 3
+					}
+				}
+			}
+
+		});
+	}
+
+	p.exec("p.Container('bobombs').addTo(p)");
+	p.exec("p.Container('explosions').addTo(p)");
 	p.exec("p.Container('cursors').addTo(p)");
 	p.exec("p.mouse().start()");
 	p.exec("p.cursor().hide()");
 	createCursors(game.players);
-	createBombs(game.bombs);
+	createBombs(game.bobombs);
 });
 
 
