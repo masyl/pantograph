@@ -94,7 +94,7 @@ var mainScreen = Pantograph(function () {
 	function createCursor(_player) {
 		// Change the cursor color depending if it is the current player
 		var url = (_player === player) ? "images/cursor.png" : "images/cursor2.png";
-		p.exec("p.Bitmap(id).src(uri).reg(9, 9).move(x, y).addTo(p.select('cursors'))", {
+		p.exec("p.Bitmap(id).src(uri).reg(10, 10).move(x, y).addTo(p.select('cursors'))", {
 			id: 'cursor-' + _player.id,
 			uri: url,
 			x: _player.x,

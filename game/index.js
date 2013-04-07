@@ -8,6 +8,8 @@ This game tracks each players cursor positions
 
 var events = require('events');
 var util = require('util');
+var opsMonitor = require('./opsMonitor');
+var lib2d = require('./lib2d');
 
 function Game() {
 	this.players = {};
@@ -25,6 +27,9 @@ var timerCycles = 0;
 var timerAccumulated = 0;
 
 
+
+
+
 util.inherits(Game, events.EventEmitter);
 
 Game.prototype.start = function () {
@@ -39,30 +44,21 @@ Game.prototype.stop = function () {
 	return this;
 }
 
-Game.prototype.tick = function () {
+tick = function () {
 	this.cycle++;
 //	console.log("Tick!", this.cycle);
 	var game = this;
 	this.testBombs();
 	if (this.running) {
 		setTimeout(function() {
-			var before = process.hrtime();
-			game.tick();
-			var now = Date.now();
-			var diff = process.hrtime(before);
-			var timespan = diff[0] * 1e9 + diff[1];
-			timerAccumulated = timerAccumulated + timespan;
-			timerCycles++;
-			var perCycle = timerAccumulated / timerCycles;
-			if (now - timerSince > timerInterval) {
-				console.log(1000000000 / perCycle, " - ", timerAccumulated, " - ", timerCycles);
-				timerSince = now;
-				timerAccumulated = timerCycles = 0;
-			}
+			game.tick()
 		}, this.speed);
 	}
 	return this;
 };
+
+// Monitor the Operations Per Seconds for the main game tick
+Game.prototype.tick = opsMonitor("Game.tick()", 3000, tick);
 
 Game.prototype.connect = function (id) {
 	var player = new Player(id);
@@ -91,7 +87,7 @@ function Player(id) {
 	this.y = 0;
 };
 
-function Bomb(id, x, y, fuseTimeout, timestamp) {
+function Bobomb(id, x, y, fuseTimeout, timestamp) {
 	this.id = id;
 	this.x = x;
 	this.y = y;
@@ -99,28 +95,50 @@ function Bomb(id, x, y, fuseTimeout, timestamp) {
 	this.timestamp = timestamp;
 }
 
-Bomb.prototype.isExploded = function () {
-	return (this.timestamp + this.fuseTimeout < Date.now());
+Bobomb.prototype.isExploded = function () {
+	return this.fuseRemain() <= 0;
+}
+
+Bobomb.prototype.fuseRemain = function () {
+	return this.timestamp + this.fuseTimeout - Date.now();
 }
 
 Game.prototype.placeBobomb = function(x, y) {
 	console.log("Bomb placed!");
 	this.bobombCount++;
 	var id = "bobomb-" + this.bobombCount;
-	var bobomb = new Bomb(id, x, y, 3000, Date.now());
+	var bobomb = new Bobomb(id, x, y, 3000, Date.now());
 	this.bobombs[id] = bobomb;
 	this.emit("tsss", bobomb);
 	return this;
 }
 
+Game.prototype.chainReaction = function(x, y) {
+	var bobomb;
+	var distance;
+	for (var key in this.bobombs) {
+		var bobomb = this.bobombs[key];
+		distance = lib2d.distance({x:x, y:y}, {x:bobomb.x, y:bobomb.y});
+		// todo: make chaine reaction distance configurable
+		if (distance < 70) {
+			var remain = bobomb.fuseRemain();
+			// todo: make chain reaction delay configurable
+			if (remain > 150) {
+				bobomb.fuseTimeout = Date.now() - bobomb.timestamp + 150;
+			}
+		}
+	}
+	return this;
+}
 
 Game.prototype.testBombs = function() {
 	var bobomb;
 	for (var key in this.bobombs) {
 		var bobomb = this.bobombs[key];
 		if (bobomb.isExploded()) {
-			console.log("Boom!!!");
+			// console.log("Boom!!!");
 			delete this.bobombs[key];
+			this.chainReaction(bobomb.x, bobomb.y);
 			this.emit("boom", bobomb);
 		}
 	}
