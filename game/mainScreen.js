@@ -45,6 +45,7 @@ var mainScreen = Pantograph(function () {
 	game.on("boom", function (bobomb) {
 		removeBomb(bobomb);
 		showExplosion(bobomb);
+		p.exec("p.audio.play('boom')");
 	});
 
 	game.on("tsss", function (bobomb) {
@@ -72,6 +73,7 @@ var mainScreen = Pantograph(function () {
 	p.on('mouseUp', function (data) {
 		game.move(player.id, data.x, data.y);
 		game.placeBobomb(data.x, data.y);
+		p.exec("p.audio.play('place')");
 	});
 
 	// Start listening to the remote mouse signal
@@ -168,6 +170,11 @@ var mainScreen = Pantograph(function () {
 	p.exec("p.Container('cursors').addTo(p)");
 	p.exec("p.mouse().start()");
 	p.exec("p.cursor().hide()");
+	p.exec("p.audio.register('music', url).ambiance('music')", {
+		url: "sounds/Ozzed_-_Here_Comes_the_8-bit_Empire.mp3"
+	})
+	p.exec("p.audio.register('boom', 'sounds/MediumExplosion8-Bit.ogg')");
+	p.exec("p.audio.register('place', 'sounds/Thip.ogg')");
 	createCursors(game.players);
 	createBombs(game.bobombs);
 });

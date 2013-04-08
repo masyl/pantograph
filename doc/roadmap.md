@@ -1,13 +1,12 @@
 
 
 # BACKLOG
+- Mute button!!!!! (clickable button)
+- Detection and Message to force "google chrome"
 - Prevent default mouse/touch/selection events on canvas
 - Drag a bomb with your in-game cursor
 - Show countdown on bombs
 - Catch mouse position even before first move
-- Play ambient soundtrack
-- Play sound when cursors places bomb
-- Play sound when bomb explodes
 - Add smoke sprites to explosion animation
 - Set game in pause mode when any player presses "p", game shows a PAUSED label, all cursors stop moving and users gain back control of the browsers cursor.
 - Send bitmap data over websocket instead of async loading using IMGs
@@ -30,6 +29,12 @@
 
 
 # HISTORY
+
+## v0.0.6
+
+- Play ambient soundtrack
+- Play sound when cursors places bomb
+- Play sound when bomb explodes
 
 ## v0.0.5
 

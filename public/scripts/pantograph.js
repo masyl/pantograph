@@ -17,6 +17,8 @@
 		p.canvas = canvasElement;
 		p.element = p.stage = new Stage(canvasElement);
 
+		p.audio = new Audio(p);
+
 		p.socket.on("exec", function (data) {
 			//console.log(data.macro, data.model);
 			p.exec(data.macro, data.model);
@@ -25,6 +27,7 @@
 
 		// index of all object by their ID's
 		p.all = {};
+
 
 		window.tick = function tick() {
 
@@ -386,7 +389,53 @@
 	};
 
 
+	function Audio(p) {
+		var audio = this;
 
+		this.ambianceId = null;
+		this.ambianceSound = null;
+
+		createjs.Sound.registerPlugins([createjs.WebAudioPlugin]);
+		createjs.Sound.addEventListener("loadComplete", function (e) {
+			console.log("loadComplete()", e);
+			if (e.id === audio.ambianceId) {
+				audio.ambiance(audio.ambianceId);
+			}
+		});
+
+	}
+
+	Audio.prototype.register = function (id, url) {
+		console.log(".register()", id, url);
+		createjs.Sound.registerSound(url, id);
+		return this;
+	}
+
+	// function loadHandler(event) {
+	// 	// This is fired for each sound that is registered.
+	// 	var instance = createjs.Sound.play("sound");  // play using id.  Could also use source.
+	// 	instance.addEventListener("complete", createjs.proxy(this.handleComplete, this));
+	// 	instance.setVolume(0.5);
+	//  }
+
+	Audio.prototype.ambiance = function (id) {
+		console.log(".ambiance()", id);
+		this.ambianceId = id;
+		if (createjs.Sound.loadComplete(id)) {
+			this.ambianceSound = createjs.Sound.play(id);
+			this.ambianceSound.setVolume(0.2);
+		}
+		return this;
+	}
+
+	Audio.prototype.play = function (id) {
+		var soundInstance = createjs.Sound.play(id);
+		return this;
+	}
+
+
+
+	Pantograph.prototype.Sound = _Bitmap;
 	Pantograph.prototype.Bitmap = _Bitmap;
 	Pantograph.prototype.Container = Container;
 	Pantograph.prototype.Animation = Animation;
