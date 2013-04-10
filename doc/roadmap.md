@@ -1,34 +1,46 @@
 
 
 # BACKLOG
-- Mute button!!!!! (clickable button)
+
+- Mute/Unmute clickable Icon
+- Mute behavior all local, without server involvement
+- Show "muted!/unmuted!" message in log or as notification
+- Hook "sound mute" state persistence to local storage
+
+- Calculate/Monitor lag
+- Event/Reaction when loosing websocket connection
+- Set game in pause mode when any player presses "p", game shows a PAUSED label, all cursors stop moving and users gain back control of the browsers cursor.
+
+- Catch mouse position even before first move
 - Detection and Message to force "google chrome"
 - Prevent default mouse/touch/selection events on canvas
 - Drag a bomb with your in-game cursor
-- Show countdown on bombs
-- Catch mouse position even before first move
 - Add smoke sprites to explosion animation
-- Set game in pause mode when any player presses "p", game shows a PAUSED label, all cursors stop moving and users gain back control of the browsers cursor.
-- Send bitmap data over websocket instead of async loading using IMGs
-- Send sound data over websocket
-- Client sends keystroke
-- Server reacts to keystroke
 - Add easing into api
 - Upon big lag or disconnection, the player's cursor re-appears
 - Abstract the library from the demo
 - Namespace all socket events
+
 - Basic "room" chat
 - Player Id/Name over cursors
-- Chat command to set name
+- Chat command to set player nick
 - Basic help in chat
-- Gameplay: Maximum cursor speed (uniformize touch vs mouse)
-- Gameplay: Cursor can be hit just like a unit
-- Gameplay: Cursor based constraints (hold touch or click to feed units)
-- Gameplay: Cursors bump into each others ?
+
 - Client send all mouse events (button type, event attrs, etc)
+- Clean up the client-side api for Bitmaps, Audio, Inputs.
+- Optimize the demo ambiance track for smaller size
+- Send bitmap data over websocket instead of async loading using IMGs
+- Send sound data over websocket
 
 
 # HISTORY
+
+## v0.0.7
+
+- Loop ambiance sound
+- Mute/Unmute on "m" keypress
+- Client sends keystroke
+- Server reacts to keystroke
 
 ## v0.0.6
 

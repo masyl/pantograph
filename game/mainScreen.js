@@ -45,23 +45,18 @@ var mainScreen = Pantograph(function () {
 	game.on("boom", function (bobomb) {
 		removeBomb(bobomb);
 		showExplosion(bobomb);
-		p.exec("p.audio.play('boom')");
+		p.exec("p.audio.sound('boom').play()");
 	});
 
 	game.on("tsss", function (bobomb) {
 		createBomb(bobomb);
 	});
 
-/*
+	// todo: Dont use socket directly
+	p.socket.on('mute', function (data) {
+		p.exec("p.audio.toggleMute()");
+	});
 
-{
-		id: bobomb.id,
-		x: this.x,
-		y: this.y,
-		expiration: this.timestamp + this.fuseTimeout
-	}
-
-*/
 	// Start listening to the remote mouse signal
 	p.on('mouse', function (data) {
 		// Move the player cursor when the mouse signal is received
@@ -73,7 +68,7 @@ var mainScreen = Pantograph(function () {
 	p.on('mouseUp', function (data) {
 		game.move(player.id, data.x, data.y);
 		game.placeBobomb(data.x, data.y);
-		p.exec("p.audio.play('place')");
+		p.exec("p.audio.sound('place').play()");
 	});
 
 	// Start listening to the remote mouse signal
@@ -165,16 +160,27 @@ var mainScreen = Pantograph(function () {
 		});
 	}
 
+	/* Register audio files */
+	p.exec("p.audio.register('ambiance', url)", {
+		url: "sounds/Ozzed_-_Here_Comes_the_8-bit_Empire.mp3"
+	});
+	p.exec("p.audio.register('boom', 'sounds/MediumExplosion8-Bit.ogg')");
+	p.exec("p.audio.register('place', 'sounds/Thip.ogg')");
+
+	/* Setup sprite containers */
 	p.exec("p.Container('bobombs').addTo(p)");
 	p.exec("p.Container('explosions').addTo(p)");
 	p.exec("p.Container('cursors').addTo(p)");
+
+	/* Setup keyboard and mouse events */
+	p.exec("p.keyboard.map('m', 'mute')");
 	p.exec("p.mouse().start()");
 	p.exec("p.cursor().hide()");
-	p.exec("p.audio.register('music', url).ambiance('music')", {
-		url: "sounds/Ozzed_-_Here_Comes_the_8-bit_Empire.mp3"
-	})
-	p.exec("p.audio.register('boom', 'sounds/MediumExplosion8-Bit.ogg')");
-	p.exec("p.audio.register('place', 'sounds/Thip.ogg')");
+
+	/* Start ambiance soundtrack, and defer playback if needed */
+	p.exec("p.audio.sound('ambiance').loop(true).setVolume(0.2)");
+
+	/* Draw initial set of bombs and the players cursors */
 	createCursors(game.players);
 	createBombs(game.bobombs);
 });

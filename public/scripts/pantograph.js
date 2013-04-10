@@ -1,10 +1,16 @@
+/*
+
+# Dependencies
+http://robertwhurst.github.io/KeyboardJS/
+http://createjs.com
+
+*/
 ;(function ($) {
 
 	var mouseThrottle = 30;
 
 	var Ticker = createjs.Ticker;
 	var Stage = createjs.Stage;
-	var Bitmap = createjs.Bitmap;
 
 	Ticker.setFPS(48);
 	Ticker.addListener(window);
@@ -18,11 +24,11 @@
 		p.element = p.stage = new Stage(canvasElement);
 
 		p.audio = new Audio(p);
+		p.keyboard = new Keyboard(p);
 
 		p.socket.on("exec", function (data) {
 			//console.log(data.macro, data.model);
 			p.exec(data.macro, data.model);
-			// p.stage.update();
 		});
 
 		// index of all object by their ID's
@@ -30,7 +36,6 @@
 
 
 		window.tick = function tick() {
-
 		    // update the stage:
 		    p.stage.update();
 		}
@@ -40,7 +45,12 @@
 	Pantograph.prototype.exec = function (macro, model) {
 		// console.info("exec", macro, model);
 		var fn = funex(macro);
-		var scope = [{p: this}, model];
+		var baseScope = {
+			"true": true,
+			"false": false,
+			p: this
+		};
+		var scope = [baseScope, model];
 		var result = fn(scope);
 		return this;
 	};
@@ -157,9 +167,9 @@
 	};
 
 
-	function _Bitmap(id) {
-		if ( !(this instanceof _Bitmap) )
-			return new _Bitmap(id);
+	function Bitmap(id) {
+		if ( !(this instanceof Bitmap) )
+			return new Bitmap(id);
 
 		this.id = id;
 		this.x = 0;
@@ -169,12 +179,12 @@
 		this.parent = null;
 	}
 
-	_Bitmap.prototype.src = function (uri) {
+	Bitmap.prototype.src = function (uri) {
 		var bitmap = this;
 		bitmap.image = new Image();
 		bitmap.image.src = uri;
 		bitmap.image.onload = function(e){
-			bitmap.element = new Bitmap(e.target);
+			bitmap.element = new createjs.Bitmap(e.target);
 			bitmap.update();
 			if (bitmap.parent) {
 				bitmap.parent.add(bitmap);
@@ -185,31 +195,31 @@
 		return this;
 	}
 
-	_Bitmap.prototype.delete = function () {
+	Bitmap.prototype.delete = function () {
 		this.parent.delete(this);
 		return this;
 	}
 
-	_Bitmap.prototype.addTo = function (parent) {
+	Bitmap.prototype.addTo = function (parent) {
 		parent.add(this);
 		return this;
 	}
 
-	_Bitmap.prototype.move = function (x, y) {
+	Bitmap.prototype.move = function (x, y) {
 		this.x = x;
 		this.y = y;
 		this.update();
 		return this;
 	}
 
-	_Bitmap.prototype.reg = function (x, y) {
+	Bitmap.prototype.reg = function (x, y) {
 		this.regX = x;
 		this.regY = y;
 		this.update();
 		return this;
 	}
 
-	_Bitmap.prototype.update = function () {
+	Bitmap.prototype.update = function () {
 		if (this.element) {
 			this.element.x = this.x;
 			this.element.y = this.y;
@@ -389,57 +399,136 @@
 	};
 
 
+	function Keyboard(p) {
+		var keyboard = this;
+		keyboard.p = p;
+	}
+
+	Keyboard.prototype.map = function (keyCombo, eventId) {
+		var keyboard = this;
+		var onDownCallback = function () {};
+		var onUpCallback = function () {
+			keyboard.p.socket.emit(eventId);
+		};
+		KeyboardJS.on(keyCombo, onDownCallback, onUpCallback);
+	}
+
 	function Audio(p) {
 		var audio = this;
-
-		this.ambianceId = null;
-		this.ambianceSound = null;
-
 		createjs.Sound.registerPlugins([createjs.WebAudioPlugin]);
-		createjs.Sound.addEventListener("loadComplete", function (e) {
-			console.log("loadComplete()", e);
-			if (e.id === audio.ambianceId) {
-				audio.ambiance(audio.ambianceId);
-			}
-		});
+
+		this.sounds = {}; // All defined audio files
 
 	}
 
+
 	Audio.prototype.register = function (id, url) {
-		console.log(".register()", id, url);
-		createjs.Sound.registerSound(url, id);
+		this.sounds[id] = new Sound(id, url);
 		return this;
 	}
 
-	// function loadHandler(event) {
-	// 	// This is fired for each sound that is registered.
-	// 	var instance = createjs.Sound.play("sound");  // play using id.  Could also use source.
-	// 	instance.addEventListener("complete", createjs.proxy(this.handleComplete, this));
-	// 	instance.setVolume(0.5);
-	//  }
+	Audio.prototype.sound = function (id) {
+		return this.sounds[id];
+	}
 
-	Audio.prototype.ambiance = function (id) {
-		console.log(".ambiance()", id);
-		this.ambianceId = id;
-		if (createjs.Sound.loadComplete(id)) {
-			this.ambianceSound = createjs.Sound.play(id);
-			this.ambianceSound.setVolume(0.2);
+	Audio.prototype.toggleMute = function () {
+		createjs.Sound.setMute(!createjs.Sound.getMute());
+		return this;
+	}
+
+
+
+	function Sound(id, url) {
+		this.id = id;
+		this.url = url;
+		createjs.Sound.registerSound(url, id);
+	}
+
+	Sound.prototype.loop = function (defer) {
+		var soundInstance = new SoundInstance(this);
+		soundInstance.loop(defer);
+		return soundInstance;
+	}
+
+	Sound.prototype.play = function (defer) {
+		var soundInstance = new SoundInstance(this);
+		soundInstance.play(defer);
+		return soundInstance;
+	}
+
+
+	function SoundInstance(sound) {
+		var soundInstance = this;
+
+		this.sound = sound;
+		this.volume = 1;
+		this.isPlaying = false;
+		this.isLooping = false;
+		this.isMuted = false;
+		if (createjs.Sound.loadComplete(sound.id)) {
+			this.element = createjs.Sound.createInstance(sound.id);
+		} else {
+			createjs.Sound.addEventListener("loadComplete", onLoadComplete);
+		}
+
+		function onLoadComplete (e) {
+			soundInstance.element = createjs.Sound.createInstance(sound.id);
+			soundInstance.setVolume(soundInstance.volume);
+			if (e.id === sound.id) {
+				if (soundInstance.isLooping) {
+					soundInstance.loop();
+				} else if (soundInstance.isPlaying) {
+					soundInstance.play();
+				}
+			}
+		}
+	}
+
+	SoundInstance.prototype.mute = function (isMute) {
+		this.isMuted = isMute;
+		if (this.element) this.element.mute(isMute);
+		return this;
+	}
+
+	SoundInstance.prototype.getMute = function () {
+		if (this.element) return this.element.getMute();
+		return this.isMuted;
+	}
+
+	SoundInstance.prototype.setVolume = function (level) {
+		this.volume = level;
+		if (this.element) this.element.setVolume(level);
+		return this;
+	}
+
+	SoundInstance.prototype.loop = function (defer) {
+		if (this.element) {
+			this.element.play("none", 0, 0, -1);
+		} else if (defer) {
+			this.isLooping = true;
+			this.isPlaying = true;
 		}
 		return this;
 	}
 
-	Audio.prototype.play = function (id) {
-		var soundInstance = createjs.Sound.play(id);
+	SoundInstance.prototype.play = function (defer) {
+		if (this.element) {
+			this.element.play();
+		} else if (defer) {
+			this.isLooping = true;
+			this.isPlaying = true;
+		}
 		return this;
 	}
 
 
-
-	Pantograph.prototype.Sound = _Bitmap;
-	Pantograph.prototype.Bitmap = _Bitmap;
+	Pantograph.prototype.Audio = Audio;
+	Pantograph.prototype.Bitmap = Bitmap;
 	Pantograph.prototype.Container = Container;
 	Pantograph.prototype.Animation = Animation;
 
 	window.Pantograph = Pantograph;
 
 })(jQuery, _);
+
+

@@ -1,6 +1,6 @@
 {
   "name": "funex",
-  "version": "0.0.0",
+  "version": "0.2.2",
   "main": "./lib/funex.js",
   "ignore": [
     "**/.*",
