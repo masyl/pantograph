@@ -26,9 +26,9 @@ http://createjs.com
 		p.audio = new Audio(p);
 		p.keyboard = new Keyboard(p);
 
-		p.socket.on("exec", function (data) {
+		p.socket.on("exec", function (data, callback) {
 			//console.log(data.macro, data.model);
-			p.exec(data.macro, data.model);
+			p.exec(data.macro, data.model, callback);
 		});
 
 		// index of all object by their ID's
@@ -42,7 +42,8 @@ http://createjs.com
 
 	};
 
-	Pantograph.prototype.exec = function (macro, model) {
+	Pantograph.prototype.exec = function (macro, model, callback) {
+		// console.log("exec with callback ", callback);
 		// console.info("exec", macro, model);
 		var fn = funex(macro);
 		var baseScope = {
@@ -52,6 +53,9 @@ http://createjs.com
 		};
 		var scope = [baseScope, model];
 		var result = fn(scope);
+		if (callback) {
+			callback(result);
+		}
 		return this;
 	};
 
@@ -109,24 +113,33 @@ http://createjs.com
 			p.stage.onMouseMove = _onMouseMove;
 
 
-			// console.info("mouse tracking started")
-			p.stage.onMouseUp = function onMouseUp(mouseEvent) {
-				if (p.stage) {
-					p.socket.emit("mouseUp", {
-						x: mouseEvent.stageX,
-						y: mouseEvent.stageY
-					});
-				}
-			};
+			p.stage.addEventListener('stagemouseup', function onMouseUp(mouseEvent) {
+				// A set timeout is used here to allow stage childs to use .preventDefault()
+				setTimeout(function() {
+					if (!mouseEvent.nativeEvent.defaultPrevented) {
+						if (p.stage) {
+							p.socket.emit("mouseUp", {
+								x: mouseEvent.stageX,
+								y: mouseEvent.stageY
+							});
+						}
+					}
+				});
+			});
 
-			p.stage.onMouseDown = function onMouseDown(mouseEvent) {
-				if (p.stage) {
-					p.socket.emit("mouseDown", {
-						x: mouseEvent.stageX,
-						y: mouseEvent.stageY
-					});
-				}
-			};
+			p.stage.addEventListener('stagemousedown', function onMouseDown(mouseEvent) {
+				// A set timeout is used here to allow stage childs to use .preventDefault()
+				setTimeout(function() {
+					if (!mouseEvent.nativeEvent.defaultPrevented) {
+						if (p.stage) {
+							p.socket.emit("mouseDown", {
+								x: mouseEvent.stageX,
+								y: mouseEvent.stageY
+							});
+						}
+					}
+				});
+			});
 
 
 
@@ -174,8 +187,10 @@ http://createjs.com
 		this.id = id;
 		this.x = 0;
 		this.y = 0;
+		this.visible = true;
 		this.image = null;
 		this.element = null;
+		this.onClick = null;
 		this.parent = null;
 	}
 
@@ -225,9 +240,38 @@ http://createjs.com
 			this.element.y = this.y;
 			this.element.regX = this.regX;
 			this.element.regY = this.regY;
+			this.element.visible = this.visible;
+			if (this.clickEvent) {
+				this.element.mouseEnabled = true;
+				this.element.addEventListener('click', this.clickEvent);
+			}
 		}
 		return this;
 	}
+
+	Bitmap.prototype.show = function () {
+		this.visible = true;
+		this.update();
+		return this;
+	}
+
+	Bitmap.prototype.hide = function () {
+		this.visible = false;
+		this.update();
+		return this;
+	}
+
+	Bitmap.prototype.click = function (eventId, eventEmmiter) {
+		this.clickEvent = function (e) {
+			e.nativeEvent.preventDefault();
+			e.nativeEvent.stopImmediatePropagation();
+			e.nativeEvent.stopPropagation();
+			eventEmmiter.emit(eventId);
+		}
+		this.update();
+		return this;
+	}
+
 
 
 
@@ -432,7 +476,16 @@ http://createjs.com
 	}
 
 	Audio.prototype.toggleMute = function () {
-		createjs.Sound.setMute(!createjs.Sound.getMute());
+		this.setMute(!this.getMute());
+		return this;
+	}
+
+	Audio.prototype.getMute = function () {
+		return createjs.Sound.getMute();
+	}
+
+	Audio.prototype.setMute = function (val) {
+		createjs.Sound.setMute(val);
 		return this;
 	}
 

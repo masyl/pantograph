@@ -2,15 +2,15 @@
 
 # BACKLOG
 
-- Mute/Unmute clickable Icon
 - Mute behavior all local, without server involvement
-- Show "muted!/unmuted!" message in log or as notification
 - Hook "sound mute" state persistence to local storage
 
 - Calculate/Monitor lag
 - Event/Reaction when loosing websocket connection
 - Set game in pause mode when any player presses "p", game shows a PAUSED label, all cursors stop moving and users gain back control of the browsers cursor.
 
+- Cursor changes shape when it hovers over a clickable area
+- Player cursor disapear when mouse is not over the window anymore
 - Catch mouse position even before first move
 - Detection and Message to force "google chrome"
 - Prevent default mouse/touch/selection events on canvas
@@ -34,6 +34,12 @@
 
 
 # HISTORY
+
+## v0.0.8
+
+- Show "muted!/unmuted!" as an icon
+- Mute/Unmute icon is clickable
+
 
 ## v0.0.7
 

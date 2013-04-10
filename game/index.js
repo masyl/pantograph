@@ -104,7 +104,6 @@ Bobomb.prototype.fuseRemain = function () {
 }
 
 Game.prototype.placeBobomb = function(x, y) {
-	console.log("Bomb placed!");
 	this.bobombCount++;
 	var id = "bobomb-" + this.bobombCount;
 	var bobomb = new Bobomb(id, x, y, 3000, Date.now());

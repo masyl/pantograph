@@ -53,8 +53,11 @@ var mainScreen = Pantograph(function () {
 	});
 
 	// todo: Dont use socket directly
-	p.socket.on('mute', function (data) {
+	p.socket.on('mute', function () {
 		p.exec("p.audio.toggleMute()");
+		p.exec("p.audio.getMute()", {}, function (muted) {
+			updateMuteButton(muted);
+		});
 	});
 
 	// Start listening to the remote mouse signal
@@ -88,6 +91,7 @@ var mainScreen = Pantograph(function () {
 			createCursor(players[key]);
 		}
 	}
+
 	function createCursor(_player) {
 		// Change the cursor color depending if it is the current player
 		var url = (_player === player) ? "images/cursor.png" : "images/cursor2.png";
@@ -97,6 +101,23 @@ var mainScreen = Pantograph(function () {
 			x: _player.x,
 			y: _player.y
 		});
+	}
+
+	function createMuteButton() {
+		p.exec("p.Bitmap('sound-on').src('images/sound.png').move(12, 10).addTo(p.select('ui'))");
+		p.exec("p.Bitmap('sound-off').src('images/sound_muted.png').click('mute').move(10, 10).addTo(p.select('ui')).hide()");
+		p.exec("p.select('ui').select('sound-on').click('mute', p.socket)");
+		p.exec("p.select('ui').select('sound-off').click('mute', p.socket)");
+	}
+
+	function updateMuteButton(muted) {
+		if (muted) {
+			p.exec("p.select('ui').select('sound-on').hide()");
+			p.exec("p.select('ui').select('sound-off').show()");
+		} else {
+			p.exec("p.select('ui').select('sound-off').hide()");
+			p.exec("p.select('ui').select('sound-on').show()");
+		}
 	}
 
 	// Create the remote cursors for each player
@@ -170,6 +191,7 @@ var mainScreen = Pantograph(function () {
 	/* Setup sprite containers */
 	p.exec("p.Container('bobombs').addTo(p)");
 	p.exec("p.Container('explosions').addTo(p)");
+	p.exec("p.Container('ui').addTo(p)");
 	p.exec("p.Container('cursors').addTo(p)");
 
 	/* Setup keyboard and mouse events */
@@ -179,6 +201,8 @@ var mainScreen = Pantograph(function () {
 
 	/* Start ambiance soundtrack, and defer playback if needed */
 	p.exec("p.audio.sound('ambiance').loop(true).setVolume(0.2)");
+
+	createMuteButton();
 
 	/* Draw initial set of bombs and the players cursors */
 	createCursors(game.players);
