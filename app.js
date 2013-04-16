@@ -6,7 +6,6 @@ var	app = express();
 var server = http.createServer(app);
 var io = socketio.listen(server);
 
-
 /*
 
 Key concepts:

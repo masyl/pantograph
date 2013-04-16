@@ -1,6 +1,8 @@
 
-
 var Pantograph = require('../lib/pantograph');
+var MuteButton = require('./component-mute.js');
+
+var gridSize = 16;
 
 var mainScreen = Pantograph(function () {
 	var p = this; // Self reference to the pantograph instance
@@ -10,34 +12,37 @@ var mainScreen = Pantograph(function () {
 	console.log("New player connected!");
 
 	// Define a macro to create a new cursor
-	// p.macro("createOwnCursor", "new('bitmap').id(id).src(uri).hide()");
+	// p.macros.new("createOwnCursor", "new('bitmap').id(id).src(uri).hide()");
 
 	// Define a macro to move a cursor
-	// p.macro("moveCursor", "select(id).move(x, y)");
+	// p.macros.new("moveCursor", "select(id).move(x, y)");
 
 	// Define a macro to create a new cursor
-	// p.macro("deleteCursor", "select(id).delete()");
+	// p.macros.new("deleteCursor", "select(id).delete()");
 
 	game.on("connect", function (player) {
-		console.log("Player sees other player join!", player);
+		// console.log("Player sees other player join!", player);
 		// Create a remote cursor
 		createCursor(player);
 	});
 
-	game.on("move", function (player) {
+
+	var mMoveCursor = p.macros.new("move-cursor", "p.select('cursors').select(id).move(x, y)");
+	game.on("moveCursor", function (player) {
 		// console.log("Player has moved: ", player.x, player.y);
 		// Move the remote cursor
-		p.exec("p.select('cursors').select(id).move(x, y)", {
+		mMoveCursor.run({
 			id: 'cursor-' + player.id,
-			x: player.x,
-			y: player.y
+			x: player.cursorX,
+			y: player.cursorY
 		});
 	});
 
+	var mDeleteCursor = p.macros.new("delete-cursor", "p.select('cursors').select(id).delete()");
 	game.on("disconnect", function (player) {
 		console.log("Player sees other player leave!");
 		// Delete the remote cursor
-		p.exec("p.select('cursors').select(id).delete()", {
+		mDeleteCursor.run({
 			id: 'cursor-' + player.id
 		});
 	});
@@ -45,7 +50,6 @@ var mainScreen = Pantograph(function () {
 	game.on("boom", function (bobomb) {
 		removeBomb(bobomb);
 		showExplosion(bobomb);
-		p.exec("p.audio.sound('boom').play()");
 	});
 
 	game.on("tsss", function (bobomb) {
@@ -53,34 +57,34 @@ var mainScreen = Pantograph(function () {
 	});
 
 	// todo: Dont use socket directly
-	p.socket.on('mute', function () {
-		p.exec("p.audio.toggleMute()");
-		p.exec("p.audio.getMute()", {}, function (muted) {
-			updateMuteButton(muted);
-		});
+	p.socket.on('movePlayer', function (data) {
+		console.log(data);
 	});
 
 	// Start listening to the remote mouse signal
 	p.on('mouse', function (data) {
 		// Move the player cursor when the mouse signal is received
 		// It will later be caugt from the Game's event emiter
-		game.move(player.id, data.x, data.y);
+		game.moveCursor(player.id, data.x, data.y);
 	});
 
 	// Start listening to the remote mouse signal
+	p.macros.new("place-sound", "p.audio.sound('place').play()");
 	p.on('mouseUp', function (data) {
-		game.move(player.id, data.x, data.y);
+		game.moveCursor(player.id, data.x, data.y);
 		game.placeBobomb(data.x, data.y);
-		p.exec("p.audio.sound('place').play()");
+		p.macros.get("place-sound").run();
 	});
 
 	// Start listening to the remote mouse signal
 	p.on('mouseDown', function (data) {
-		game.move(player.id, data.x - 1, data.y + 3);
+		game.moveCursor(player.id, data.x - 1, data.y + 3);
 	});
 
+	var mRemoveBomb = p.macros.new("remove-bomb",
+		"p.select('bobombs').select(id).delete()");
 	function removeBomb(bobomb) {
-		p.exec("p.select('bobombs').select(id).delete()", {
+		mRemoveBomb.run({
 			id: "sprite-" + bobomb.id
 		});
 	}
@@ -92,47 +96,77 @@ var mainScreen = Pantograph(function () {
 		}
 	}
 
+	var mCreateCursor = p.macros.new("create-cursor",
+		"p.Bitmap(id).src(uri).reg(10, 10).move(x, y).addTo(p.select('cursors'))");
 	function createCursor(_player) {
 		// Change the cursor color depending if it is the current player
 		var url = (_player === player) ? "images/cursor.png" : "images/cursor2.png";
-		p.exec("p.Bitmap(id).src(uri).reg(10, 10).move(x, y).addTo(p.select('cursors'))", {
+		mCreateCursor.run({
 			id: 'cursor-' + _player.id,
 			uri: url,
-			x: _player.x,
-			y: _player.y
+			x: _player.cursorX,
+			y: _player.cursorY
 		});
 	}
 
-	function createMuteButton() {
-		p.exec("p.Bitmap('sound-on').src('images/sound.png').move(12, 10).addTo(p.select('ui'))");
-		p.exec("p.Bitmap('sound-off').src('images/sound_muted.png').click('mute').move(10, 10).addTo(p.select('ui')).hide()");
-		p.exec("p.select('ui').select('sound-on').click('mute', p.socket)");
-		p.exec("p.select('ui').select('sound-off').click('mute', p.socket)");
-	}
 
-	function updateMuteButton(muted) {
-		if (muted) {
-			p.exec("p.select('ui').select('sound-on').hide()");
-			p.exec("p.select('ui').select('sound-off').show()");
-		} else {
-			p.exec("p.select('ui').select('sound-off').hide()");
-			p.exec("p.select('ui').select('sound-on').show()");
+
+	// Create the remote cursors for each player
+	function createPlayers(players) {
+		for (var key in players) {
+			createPlayer(players[key]);
 		}
 	}
 
-	// Create the remote cursors for each player
+
+	var mCreatePlayer = p.macros.new("create-player",
+		"p.Animation(id).sprite(sprite).move(x, y).addTo(p.select('players')).loop().play('spinning')");
+	function createPlayer(_player) {
+		// Change the cursor color depending if it is the current player
+		mCreatePlayer.run({
+			id: 'player-' + _player.id,
+			x: _player.x * gridSize,
+			y: _player.y * gridSize,
+			// speed: 300,
+			loop: true,
+			sprite: {
+				images : ["images/timmy.png"],
+				frames: {
+					width: 24,
+					height: 32,
+					count: 99,
+					regX: 12,
+					regY: 30
+				},
+				animations: {
+					spinning: {
+						frames: [0, 1, 2, 3, 4, 5, 6, 7],
+						frequency: 8
+					}
+				}
+			}
+
+		});
+
+	}
+
+
 	function createBombs(bobombs) {
 		for (var key in bobombs) {
 			createBomb(bobombs[key]);
 		}
 	}
+
+	var mCreateBomb = p.macros.new("create-bomb",
+		"p.Animation(id).sprite(sprite).move(x, y).addTo(p.select('bobombs')).speed(speed).loop(loop).play('idle')");
+
+	// todo: reuse spritesheet definition
 	function createBomb(bobomb) {
-		// Change the cursor color depending if it is the current player
-		p.exec("p.Animation(id).sprite(sprite).move(x, y).addTo(p.select('bobombs')).speed(speed).loop(loop).play('idle')", {
+		mCreateBomb.run({
 			id: 'sprite-' + bobomb.id,
 			x: bobomb.x,
 			y: bobomb.y,
-			speed: 300,
+			// speed: 300,
 			loop: true,
 			sprite: {
 				images : ["images/bobomb-sprites.png"],
@@ -155,9 +189,14 @@ var mainScreen = Pantograph(function () {
 		});
 	}
 
+
+	p.macros.new("show-explosion", [
+		"p.Animation(id).sprite(sprite).move(x, y).addTo(p.select('explosions')).play('explode')",
+		"p.audio.sound('boom').play()"
+		]);
+
 	function showExplosion(bobomb) {
-		// Change the cursor color depending if it is the current player
-		p.exec("p.Animation(id).sprite(sprite).move(x, y).addTo(p.select('explosions')).play('explode')", {
+		p.macros.get("show-explosion").run({
 			id: 'explosion-' + bobomb.id,
 			x: bobomb.x,
 			y: bobomb.y,
@@ -182,33 +221,49 @@ var mainScreen = Pantograph(function () {
 	}
 
 	/* Register audio files */
-	p.exec("p.audio.register('ambiance', url)", {
-		url: "sounds/Ozzed_-_Here_Comes_the_8-bit_Empire.mp3"
-	});
-	p.exec("p.audio.register('boom', 'sounds/MediumExplosion8-Bit.ogg')");
-	p.exec("p.audio.register('place', 'sounds/Thip.ogg')");
+	p.macros.new("register-sounds",
+		"p.audio.register(id, url)")
+		.run([
+			{ id: 'ambiance', url: "sounds/Ozzed_-_Here_Comes_the_8-bit_Empire.mp3" },
+			{ id: 'boom', url: "sounds/MediumExplosion8-Bit.ogg" },
+			{ id: 'place', url: "sounds/Thip.ogg" }
+			]);
 
 	/* Setup sprite containers */
-	p.exec("p.Container('bobombs').addTo(p)");
-	p.exec("p.Container('explosions').addTo(p)");
-	p.exec("p.Container('ui').addTo(p)");
-	p.exec("p.Container('cursors').addTo(p)");
+	p.macros.new("setup-sprite-containers",
+		"p.Container(id).addTo(p)")
+		.run([
+			{id: "players"},
+			{id: "bobombs"},
+			{id: "explosions"},
+			{id: "ui"},
+			{id: "cursors"}
+			]);
 
 	/* Setup keyboard and mouse events */
-	p.exec("p.keyboard.map('m', 'mute')");
-	p.exec("p.mouse().start()");
-	p.exec("p.cursor().hide()");
+	p.macros.new("setup-keyboard-mappings", [
+		"p.keyboard.map('left, right, bottom, top', 'movePlayer')",
+		])
+		.run();
+	p.macros.new("setup-cursor-tracking",[
+		"p.mouse().start()",
+		"p.cursor().hide()"
+		])
+		.run();
 
 	/* Start ambiance soundtrack, and defer playback if needed */
-	p.exec("p.audio.sound('ambiance').loop(true).setVolume(0.2)");
+	p.macros.new("strart-soundtrack",
+		"p.audio.sound('ambiance').loop(true).setVolume(0.2)")
+		.run();
 
-	createMuteButton();
+	var muteButton = new MuteButton().place(p);
 
 	/* Draw initial set of bombs and the players cursors */
+	createPlayers(game.players);
 	createCursors(game.players);
 	createBombs(game.bobombs);
 });
 
 
-
 module.exports = mainScreen;
+

@@ -16,19 +16,59 @@ http://createjs.com
 	Ticker.addListener(window);
 
 
+	function Macro(id, source) {
+		var macro = this;
+		this.id = id;
+		this.source = source;
+		this.funexes = [];
+		source.forEach(function (val, i, obj) {
+			macro.funexes.push(new funex(val));
+		});
+	}
+
+	Macro.prototype.run = function (model) {
+		var output;
+
+		console.log("run: ", this.id, this, model);
+		var output;
+		this.funexes.forEach(function (val, i, obj) {
+			output = val(model);
+		});
+		return output;
+	}
+
 	function Pantograph(socket, canvasElement) {
 		var p = this;
 
 		p.socket = socket;
 		p.canvas = canvasElement;
 		p.element = p.stage = new Stage(canvasElement);
+		p.macros = {};
 
 		p.audio = new Audio(p);
 		p.keyboard = new Keyboard(p);
 
-		p.socket.on("exec", function (data, callback) {
+		p.socket.on("run", function (data, callback) {
+			var macro = p.macros[data.macro];
+			console.log(data);
 			//console.log(data.macro, data.model);
-			p.exec(data.macro, data.model, callback);
+			p.run(macro, data.model, callback);
+		});
+
+		p.socket.on("teach", function (data) {
+			var funexArray = [];
+			var macro = new Macro(data.id, data.source);
+			console.log("teach", macro);
+			p.macros[data.id] = macro;
+
+		});
+
+		p.socket.on("latency", function (data) {
+			console.log("Roundtrip latency: ", data);
+		});
+
+		p.socket.on("latencyCheck", function (data, callback) {
+			callback("pong");
 		});
 
 		// index of all object by their ID's
@@ -42,20 +82,24 @@ http://createjs.com
 
 	};
 
-	Pantograph.prototype.exec = function (macro, model, callback) {
+	Pantograph.prototype.run = function (macro, model, callback) {
 		// console.log("exec with callback ", callback);
 		// console.info("exec", macro, model);
-		var fn = funex(macro);
 		var baseScope = {
 			"true": true,
 			"false": false,
 			p: this
 		};
-		var scope = [baseScope, model];
-		var result = fn(scope);
-		if (callback) {
-			callback(result);
-		}
+		// Wrap the model in an array if it isn't already an array
+		var _model = Array.isArray(model) ? model : [model];
+
+		_model.forEach(function (val, i, obj) {
+			var scope = [baseScope, val];
+			var result = macro.run(scope);
+			if (callback) {
+				callback(result);
+			}
+		});
 		return this;
 	};
 
@@ -100,7 +144,7 @@ http://createjs.com
 
 		function start() {
 
-			// console.info("mouse tracking started")
+
 			function onMouseMove(mouseEvent) {
 				if (p.stage) {
 					p.socket.emit("mouse", {
@@ -140,8 +184,6 @@ http://createjs.com
 					}
 				});
 			});
-
-
 
 			return this;
 		}
@@ -374,9 +416,6 @@ http://createjs.com
 
 
 
-
-
-
 	function Container(id) {
 		if ( !(this instanceof Container) )
 			return new Container(id);
@@ -451,8 +490,10 @@ http://createjs.com
 	Keyboard.prototype.map = function (keyCombo, eventId) {
 		var keyboard = this;
 		var onDownCallback = function () {};
-		var onUpCallback = function () {
-			keyboard.p.socket.emit(eventId);
+		var onUpCallback = function (e) {
+			keyboard.p.socket.emit(eventId, {
+				// "event": e
+			});
 		};
 		KeyboardJS.on(keyCombo, onDownCallback, onUpCallback);
 	}

@@ -2,13 +2,15 @@
 
 # BACKLOG
 
+- Automatic re-use/caching/memoizing of macros
 - Mute behavior all local, without server involvement
 - Hook "sound mute" state persistence to local storage
 
-- Calculate/Monitor lag
 - Event/Reaction when loosing websocket connection
 - Set game in pause mode when any player presses "p", game shows a PAUSED label, all cursors stop moving and users gain back control of the browsers cursor.
 
+- Flush the scene when connectin is reseted
+- Store game state in DB
 - Cursor changes shape when it hovers over a clickable area
 - Player cursor disapear when mouse is not over the window anymore
 - Catch mouse position even before first move
@@ -34,6 +36,20 @@
 
 
 # HISTORY
+
+## v0.0.10
+
+- Macro instances with functionnal api
+- Sending macros for reuse
+- local and remote context
+- run command
+- run() multiple times with array or models
+- multi-line macros
+
+## v0.0.9
+
+- Calculate/Monitor lag
+
 
 ## v0.0.8
 

@@ -8,7 +8,7 @@ This game tracks each players cursor positions
 
 var events = require('events');
 var util = require('util');
-var opsMonitor = require('./opsMonitor');
+var opsMonitor = require('../opsMonitor');
 var lib2d = require('./lib2d');
 
 function Game() {
@@ -27,9 +27,6 @@ var timerCycles = 0;
 var timerAccumulated = 0;
 
 
-
-
-
 util.inherits(Game, events.EventEmitter);
 
 Game.prototype.start = function () {
@@ -44,7 +41,7 @@ Game.prototype.stop = function () {
 	return this;
 }
 
-tick = function () {
+tick = function (monitorCallback) {
 	this.cycle++;
 //	console.log("Tick!", this.cycle);
 	var game = this;
@@ -54,6 +51,7 @@ tick = function () {
 			game.tick()
 		}, this.speed);
 	}
+	monitorCallback();
 	return this;
 };
 
@@ -73,18 +71,28 @@ Game.prototype.disconnect = function (player) {
 	return this;
 };
 
+Game.prototype.moveCursor = function (id, x, y) {
+	var player = this.players[id];
+	player.cursorX = x;
+	player.cursorY = y;
+	this.emit("moveCursor", player);
+	return this;
+}
+
 Game.prototype.move = function (id, x, y) {
 	var player = this.players[id];
-	player.x = x;
-	player.y = y;
+	player.cursorX = x;
+	player.cursorY = y;
 	this.emit("move", player);
 	return this;
 }
 
 function Player(id) {
 	this.id = id;
-	this.x = 0;
-	this.y = 0;
+	this.cursorX = 0;
+	this.cursorY = 0;
+	this.x = 10;
+	this.y = 10;
 };
 
 function Bobomb(id, x, y, fuseTimeout, timestamp) {
