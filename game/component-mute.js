@@ -23,23 +23,21 @@ MuteButton.prototype.place = function place(p) {
 
 	this.mToggleMute = p.macros.new("toggle-mute", function() {
 		p.audio.toggleMute();
-		p.audio.getMute();
-	}, function (muted) {
-		muteButton.update(muted);
-	})
+		p.run(p.macro(iif(p.audio.getMute(), 'unmute', 'mute')));
+	});
 
 	// todo: Dont use socket directly
-	p.socket.on('mute', function () {
-		//todo: simplify this sequence
-		muteButton.mToggleMute.run();
+	p.socket.on('toggle-mute', function (data) {
+		console.log("Client toggled mute!", data);
 	});
 
 	p.macros.new("create-mute-button", function() {
-		p.keyboard.map('m', 'mute');
+		p.keyboard.map('m', 'toggle-mute');
+		p.macro('toggle-mute').when(p.emitter, 'toggle-mute');
 		p.Bitmap('sound-on').src('images/sound.png').move(12, 10).addTo(p.select('ui'));
 		p.Bitmap('sound-off').src('images/sound_muted.png').click('mute').move(10, 10).addTo(p.select('ui')).hide();
-		p.select('ui').select('sound-on').click('mute', p.socket);
-		p.select('ui').select('sound-off').click('mute', p.socket);
+		p.select('ui').select('sound-on').click('toggle-mute', p.emitter);
+		p.select('ui').select('sound-off').click('toggle-mute', p.emitter);
 	})
 	.run();
 

@@ -11,15 +11,6 @@ var mainScreen = Pantograph(function () {
 
 	console.log("New player connected!");
 
-	// Define a macro to create a new cursor
-	// p.macros.new("createOwnCursor", "new('bitmap').id(id).src(uri).hide()");
-
-	// Define a macro to move a cursor
-	// p.macros.new("moveCursor", "select(id).move(x, y)");
-
-	// Define a macro to create a new cursor
-	// p.macros.new("deleteCursor", "select(id).delete()");
-
 	game.on("connect", function (player) {
 		// console.log("Player sees other player join!", player);
 		// Create a remote cursor
@@ -27,10 +18,25 @@ var mainScreen = Pantograph(function () {
 	});
 
 
-	var mMoveCursor = p.macros.new("move-cursor", "p.select('cursors').select(id).move(x, y)");
+	var mMoveCursor = p.macros.new("move-cursor", function() {
+		p.select('cursors').select(id).move(x, y, true);
+	});
+
+	var mMoveOwnCursor = p.macros.new("move-own-cursor", function() {
+		p.select('cursors').select('cursor-own').move(x, y);
+	});
+
+	//todo : remove the need of emitter
+	var mTrackOwnCursor = p.macros.new("track-own-cursor", function() {
+		p.macro('move-own-cursor').when(p.emitter, 'mouse');
+	});
+
+	mTrackOwnCursor.run();
+
 	game.on("moveCursor", function (player) {
 		// console.log("Player has moved: ", player.x, player.y);
 		// Move the remote cursor
+
 		mMoveCursor.run({
 			id: 'cursor-' + player.id,
 			x: player.cursorX,
@@ -46,6 +52,7 @@ var mainScreen = Pantograph(function () {
 			id: 'cursor-' + player.id
 		});
 	});
+
 
 	game.on("boom", function (bobomb) {
 		removeBomb(bobomb);
@@ -98,14 +105,24 @@ var mainScreen = Pantograph(function () {
 
 	var mCreateCursor = p.macros.new("create-cursor",
 		"p.Bitmap(id).src(uri).reg(10, 10).move(x, y).addTo(p.select('cursors'))");
+
 	function createCursor(_player) {
 		// Change the cursor color depending if it is the current player
-		var url = (_player === player) ? "images/cursor.png" : "images/cursor2.png";
+		var url = (_player === player) ? "images/cursor-outline.png" : "images/cursor2.png";
 		mCreateCursor.run({
 			id: 'cursor-' + _player.id,
 			uri: url,
 			x: _player.cursorX,
 			y: _player.cursorY
+		});
+	}
+
+	function createOwnCursor() {
+		mCreateCursor.run({
+			id: 'cursor-own',
+			uri: "images/cursor.png",
+			x: player.cursorX,
+			y: player.cursorY
 		});
 	}
 
@@ -261,6 +278,7 @@ var mainScreen = Pantograph(function () {
 	/* Draw initial set of bombs and the players cursors */
 	createPlayers(game.players);
 	createCursors(game.players);
+	createOwnCursor();
 	createBombs(game.bobombs);
 });
 

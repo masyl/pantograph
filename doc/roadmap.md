@@ -2,14 +2,12 @@
 
 # BACKLOG
 
-- Automatic re-use/caching/memoizing of macros
-- Mute behavior all local, without server involvement
 - Hook "sound mute" state persistence to local storage
-
-- Event/Reaction when loosing websocket connection
+- Client side Pantograph should emit events directly instead of from a child emitter object.
+- UI to show state of lag and various types of disconnections
 - Set game in pause mode when any player presses "p", game shows a PAUSED label, all cursors stop moving and users gain back control of the browsers cursor.
-
-- Flush the scene when connectin is reseted
+- The cursor "pressed down" state when clicking should also occur on the client
+- Flush the scene when connection is reseted
 - Store game state in DB
 - Cursor changes shape when it hovers over a clickable area
 - Player cursor disapear when mouse is not over the window anymore
@@ -36,6 +34,14 @@
 
 
 # HISTORY
+
+## v0.0.11
+
+- Client side Pantograph now has an event emitter
+- Mute behavior (sound and button) happens on the client and only reports status on the client.
+- Cursor behavior on the client, but reports to the server
+- Local cursor show whole and remote cursor shown as an outline
+- Placing bombs with click coords
 
 ## v0.0.10
 

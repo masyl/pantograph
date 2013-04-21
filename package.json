@@ -1,6 +1,6 @@
 {
   "name": "pantograph",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "A api for controlling multiplayer html5 2d canvas games from a server!",
   "main": "app.js",
   "scripts": {
@@ -17,6 +17,7 @@
   "dependencies": {
     "express": "~3.1.0",
     "socket.io": "~0.9.13",
-    "funex": "~0.2.0"
+    "funex": "~0.2.0",
+    "eventemitter2": "~0.4.11"
   }
 }

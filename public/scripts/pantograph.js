@@ -7,17 +7,25 @@ http://createjs.com
 */
 ;(function ($) {
 
-	var mouseThrottle = 30;
+	var mouseThrottle = 100;
 
 	var Ticker = createjs.Ticker;
 	var Stage = createjs.Stage;
-
+	Ticker.useRAF = true;
 	Ticker.setFPS(48);
 	Ticker.addListener(window);
 
 
+
+	var funexHelper = {
+		iif: function (bool, ifTrue, ifFalse) {
+			return bool ? ifFalse : ifTrue
+		}
+	}
+
 	function Macro(id, source) {
 		var macro = this;
+		this.p = null;
 		this.id = id;
 		this.source = source;
 		this.funexes = [];
@@ -29,12 +37,24 @@ http://createjs.com
 	Macro.prototype.run = function (model) {
 		var output;
 
-		console.log("run: ", this.id, this, model);
+		// console.log("run: ", this.id, this, model);
 		var output;
 		this.funexes.forEach(function (val, i, obj) {
 			output = val(model);
 		});
 		return output;
+	}
+
+	Macro.prototype.when = function (emmiter, eventName) {
+		var macro = this;
+		// console.log("when!!! ", emmiter, eventName);
+		emmiter.on(eventName, function(e) {
+			// console.log("on when!!! ", eventName);
+			macro.p.run(macro, e, function() {
+				// ... nothing yet ...
+			});
+		});
+		return this;
 	}
 
 	function Pantograph(socket, canvasElement) {
@@ -44,13 +64,14 @@ http://createjs.com
 		p.canvas = canvasElement;
 		p.element = p.stage = new Stage(canvasElement);
 		p.macros = {};
+		p.emitter = new EventEmitter2();
 
 		p.audio = new Audio(p);
 		p.keyboard = new Keyboard(p);
 
 		p.socket.on("run", function (data, callback) {
 			var macro = p.macros[data.macro];
-			console.log(data);
+			// console.log(data);
 			//console.log(data.macro, data.model);
 			p.run(macro, data.model, callback);
 		});
@@ -58,7 +79,8 @@ http://createjs.com
 		p.socket.on("teach", function (data) {
 			var funexArray = [];
 			var macro = new Macro(data.id, data.source);
-			console.log("teach", macro);
+			macro.p = p;
+			// console.log("teach", macro);
 			p.macros[data.id] = macro;
 
 		});
@@ -82,6 +104,10 @@ http://createjs.com
 
 	};
 
+	Pantograph.prototype.macro = function (id) {
+		return this.macros[id];
+	};
+
 	Pantograph.prototype.run = function (macro, model, callback) {
 		// console.log("exec with callback ", callback);
 		// console.info("exec", macro, model);
@@ -94,7 +120,7 @@ http://createjs.com
 		var _model = Array.isArray(model) ? model : [model];
 
 		_model.forEach(function (val, i, obj) {
-			var scope = [baseScope, val];
+			var scope = [baseScope, funexHelper, val];
 			var result = macro.run(scope);
 			if (callback) {
 				callback(result);
@@ -145,16 +171,16 @@ http://createjs.com
 		function start() {
 
 
+			// todo: one should listen to the other;
 			function onMouseMove(mouseEvent) {
 				if (p.stage) {
-					p.socket.emit("mouse", {
+					p.emitter.emit("mouse", {
 						x: mouseEvent.stageX,
 						y: mouseEvent.stageY
 					});
 				}
 			};
-			_onMouseMove = _.throttle(onMouseMove, mouseThrottle);
-			p.stage.onMouseMove = _onMouseMove;
+			p.stage.onMouseMove = onMouseMove;
 
 
 			p.stage.addEventListener('stagemouseup', function onMouseUp(mouseEvent) {
@@ -162,7 +188,7 @@ http://createjs.com
 				setTimeout(function() {
 					if (!mouseEvent.nativeEvent.defaultPrevented) {
 						if (p.stage) {
-							p.socket.emit("mouseUp", {
+							p.emitter.emit("mouseUp", {
 								x: mouseEvent.stageX,
 								y: mouseEvent.stageY
 							});
@@ -176,13 +202,25 @@ http://createjs.com
 				setTimeout(function() {
 					if (!mouseEvent.nativeEvent.defaultPrevented) {
 						if (p.stage) {
-							p.socket.emit("mouseDown", {
+							p.emitter.emit("mouseDown", {
 								x: mouseEvent.stageX,
 								y: mouseEvent.stageY
 							});
 						}
 					}
 				});
+			});
+
+			p.emitter.on('mouse', _.throttle(function (data) {
+				p.socket.emit('mouse', data)
+			}, mouseThrottle));
+
+			p.emitter.on('mouseUp', function (data) {
+				p.socket.emit('mouseUp', data)
+			});
+
+			p.emitter.on('mouseDown', function (data) {
+				p.socket.emit('mouseDown', data)
 			});
 
 			return this;
@@ -262,10 +300,23 @@ http://createjs.com
 		return this;
 	}
 
-	Bitmap.prototype.move = function (x, y) {
-		this.x = x;
-		this.y = y;
-		this.update();
+	Bitmap.prototype.move = function (x, y, tween) {
+		var bitmap = this;
+		var tween;
+		if (tween) {
+			// console.log("mouseThrottle", mouseThrottle, createjs.Ease.linear);
+			tween = createjs.Tween.get(bitmap, {override:true}).to({
+				x: x,
+				y: y
+			}, mouseThrottle*1.5, createjs.Ease.linear);
+			tween.addEventListener("change", function() {
+				bitmap.update();
+			})
+		} else {
+			bitmap.x = x;
+			bitmap.y = y;
+			bitmap.update();
+		}
 		return this;
 	}
 
@@ -487,13 +538,11 @@ http://createjs.com
 		keyboard.p = p;
 	}
 
-	Keyboard.prototype.map = function (keyCombo, eventId) {
+	Keyboard.prototype.map = function (keyCombo, eventId, data) {
 		var keyboard = this;
 		var onDownCallback = function () {};
 		var onUpCallback = function (e) {
-			keyboard.p.socket.emit(eventId, {
-				// "event": e
-			});
+			keyboard.p.emitter.emit(eventId, data);
 		};
 		KeyboardJS.on(keyCombo, onDownCallback, onUpCallback);
 	}
